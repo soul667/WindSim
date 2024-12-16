@@ -1,3 +1,8 @@
-# WindSim
+# 使用
 
-Developed with Unreal Engine 5
+使用lfs拉取
+```powershell
+git lfs clone https://github.com/soul667/WindSim.git
+```
+
+双击`WindSim.uproject`rebuid项目即可
