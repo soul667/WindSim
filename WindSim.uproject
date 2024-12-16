@@ -28,6 +28,10 @@
 		{
 			"Name": "VictoryBPLibrary",
 			"Enabled": false
+		},
+		{
+			"Name": "OpenCV",
+			"Enabled": true
 		}
 	]
 }
