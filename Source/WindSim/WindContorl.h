@@ -17,12 +17,30 @@
 
 #include "Components/LightComponent.h"
 #include "Camera/CameraComponent.h"
+
+// 截图
+
 #include "Components/SceneCaptureComponent2D.h" // Add this include statement
+#include "Engine/TextureRenderTarget2D.h"
+#include "IImageWrapperModule.h"
+#include "IImageWrapper.h"
+//#include "FileHelper.h"
+//#include "Paths.h"
+#include "Engine/Texture2D.h"
+#include "Misc/FileHelper.h"
+#include "ImageUtils.h" 
 
-#include "WindContorl.generated.h"
+//#include "opencv2/opencv.hpp"
+ #include "WindContorl.generated.h"
 
+// Opencv
+// #if WITH_OPENCV
 
-UCLASS( ClassGroup=(Wind), meta=(BlueprintSpawnableComponent) )
+// #endif
+
+UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+//UCLASS()
+
 class WINDSIM_API UWindContorl : public UActorComponent
 {
 	GENERATED_BODY()
@@ -45,7 +63,6 @@ public:
 	AActor* FlowLightActor;
 	AActor* WindSpinActor;
 	FAN_MODE MODE = FAN_MODE::ACTIVING;
-	
 	//  1/3π rad/s
 	float speed = 1.0f / 3.0f * PI;
 	AActor* SpinContorl;
@@ -58,11 +75,15 @@ public:
 	UStaticMeshComponent* CenterLight_;
 
 	TArray<ULightComponent*> EnvironmentLights;// 环境灯光 
+	AActor* CamActor;
 	UCameraComponent* Cam;
     //#include "Components/PointLightComponent.h"
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "2D Render")
     USceneCaptureComponent2D* SceneCapture;
     //UPointLightComponent* PointLight;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SaveImage")
+    FString ExportPath = TEXT("E:/RM/WindExport");
+
 	bool ColorChange = false;// 如果这个变化了 不到2s也得重新扫描
 	struct Fan {
 		AActor* fa;// 扇叶本身的Actor
@@ -94,7 +115,9 @@ public:
 		float LastColorModeTime = 0;
 		float LastActivateModeTime = 0;
 		float LastSaveTime = 0;
-
+		float LastCanUseTime = 0;
+		float LastChangeCamLocationTime=0;
+		float SaveModeTime=0;
 	}KeyState; //加入延时按键防止一直来回切换模式
 	struct State {
 		int speed = 0;
@@ -116,6 +139,36 @@ public:
 	}WindState;
 	URotatingMovementComponent* WindSpinContorl;
 	APlayerController* PlayerController;
+	struct Point {
+		FVector2D p;
+		FString PointName; //ID
+	};
+	struct KeyArea {
+		FVector2D LeftTop;
+		FVector2D RightBottom;
+		FString AreaName; //ID
+	};
+
+	TArray<FVector> RPoints;// 用于存储中心R标的信息
+	TArray<FVector2D> FanPoints;
+	TArray<FVector> OutPoints; // 存储外面点的信息
+
+	TArray<FVector2D> WindPoints;
+
+	TArray<KeyArea> Areas;
+	TArray<Point> KeyPoints;	
+	FTextureRenderTargetResource *TextureRenderTargetResource;
+	// 相机组件
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CamMove")
+	bool CanMove = false; // 相机组件是否可以移动
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SaveImage")
+	int SavedImageNum = 0; //已保存的图像数目
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SaveImage")
+	bool AutoSave = 0; //自动保存 Ctrl+A开启
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SaveImage")
+	float AutoSaverTime = 0.5;
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -128,9 +181,18 @@ protected:
 	void GameInit();
 	void WindRender();
 	//inline void CheckNumber();
+	void ColorToImage(const FString& InImagePath, TArray<FColor> InColor, int32 InWidth, int32 InHight);
+	FString GerImgName(FString Path, FString Name);
+	bool WriteData(FString Path, FString Name);
+	TArray<FVector2D> WorldToScreen(TArray<FVector>InputWorldPoints);
+	bool InitCamMatrix();// 如果相机位置发生改变就需要重新计算相机矩阵
+	bool WorldPointsInit(); // 解析Yaml文件
+	FVector2d ConverToImgSize(FVector2d UseVec);
+	bool WorldPointsConvertToSceen(FVector FanCenter_);
+	
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+
 };
