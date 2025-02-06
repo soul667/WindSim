@@ -33,6 +33,8 @@
 //#include "opencv2/opencv.hpp"
  #include "WindContorl.generated.h"
 
+//#include "CameraUtility.h"                                                                                                                         
+//#include "Camera/CameraActor.h"
 // Opencv
 // #if WITH_OPENCV
 
@@ -99,6 +101,7 @@ public:
 		//AActor* CenterLight;
 		FAN_MODE MODE = FAN_MODE::ACTIVING; // 默认全部都是激活模式
 		int Score = 0;// 击打中的环数
+		bool AlreadyHit = 0;
 		// Cast<UStaticMeshComponent>(use_->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 	};
 	//Fan Fans
@@ -118,6 +121,9 @@ public:
 		float LastCanUseTime = 0;
 		float LastChangeCamLocationTime=0;
 		float SaveModeTime=0;
+		float LastRandomHitTime=0;
+
+		bool bWasInputActive = false;
 	}KeyState; //加入延时按键防止一直来回切换模式
 	struct State {
 		int speed = 0;
@@ -136,6 +142,7 @@ public:
 		int AllScore = 0;
 		COLOR_GAME Color = COLOR_GAME::RED;
 		float LastWindFiveTime = 0;
+		int LastSetWinId = -1;
 	}WindState;
 	URotatingMovementComponent* WindSpinContorl;
 	APlayerController* PlayerController;
@@ -160,7 +167,7 @@ public:
 	FTextureRenderTargetResource *TextureRenderTargetResource;
 	// 相机组件
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CamMove")
-	bool CanMove = false; // 相机组件是否可以移动
+	bool CanMove = true; // 相机组件是否可以移动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SaveImage")
 	int SavedImageNum = 0; //已保存的图像数目
 
@@ -169,6 +176,16 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SaveImage")
 	float AutoSaverTime = 0.5;
+	
+	// 模式不随时间变化，根据输入固定 
+	bool AutoHit = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CamCopy")
+	int CamNum = 0; // 已经创建的相机
+	bool MultiCamSave=1;
+	TArray<AActor*>CamActors;	
+	//struct KeyState {
+	//}KeyState_;
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -180,6 +197,8 @@ protected:
 	void LoadMaterial();
 	void GameInit();
 	void WindRender();
+	bool ProjectWorldToSceneCapture(const FVector& WorldPosition, const USceneCaptureComponent2D* SceneCaptureComponent2D, FVector2D& SceneCapturePosition);
+
 	//inline void CheckNumber();
 	void ColorToImage(const FString& InImagePath, TArray<FColor> InColor, int32 InWidth, int32 InHight);
 	FString GerImgName(FString Path, FString Name);
@@ -189,7 +208,10 @@ protected:
 	bool WorldPointsInit(); // 解析Yaml文件
 	FVector2d ConverToImgSize(FVector2d UseVec);
 	bool WorldPointsConvertToSceen(FVector FanCenter_);
-	
+	FVector InitLocation;
+	FRotator InitRotation;
+	bool RandomHit = 1; // 随机按下
+
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

@@ -160,6 +160,7 @@ void UWindContorl::GetFans()
 			if (j)
 			{
 				Fans[i].ScoreLights_.Add(Cast<UStaticMeshComponent>(j->GetComponentByClass(UStaticMeshComponent::StaticClass())));
+
 			}
 			else
 			{
@@ -193,6 +194,7 @@ void UWindContorl::ChangeMode()
 		{
 			WindState.state[i] = FAN_MODE::NOACTIVATE;
 			Fans[i].Score = 0;
+			Fans[i].AlreadyHit = 0;
 			if (Fans[i].TargetLight)
 			{
 				Fans[i].TargetLight->SetActorHiddenInGame(false);
@@ -220,6 +222,7 @@ void UWindContorl::ChangeMode()
 		WindState.state[WindState.NowHit] = FAN_MODE::ACTIVING; // 正在激活状态
 		WindState.HitNum = 1;
 	}
+	// 亮起环数的显示
 	if (WindState.state[WindState.NowHit] == FAN_MODE::ACTIVED)
 	{
 		if (WindState.HitNum != 6)
@@ -227,32 +230,31 @@ void UWindContorl::ChangeMode()
 			WindState.LastHitTime = ElapsedTime;
 			if (Fans[WindState.NowHit].fa == nullptr)
 				return; // 如果没有风扇 直接退出
+
 			for (auto &j : Fans[WindState.NowHit].FlowLight_)
-			{
 				if (j)
-				{
 					if (j && j->GetMaterial(0))
-					{
 						j->SetMaterial(0, TargetMaterial);
-					}
-					// LOG SETTING FlowLight Right
-				}
-			}
 
 			if (Fans[WindState.NowHit].TargetLight_)
-			{
 				Fans[WindState.NowHit].TargetLight_->SetMaterial(0, Material[0]);
 				// 并且设置它的状态为隐藏
 				// 设置Fans[WindState.NowHit].TargetLight的可见性
 				if (Fans[WindState.NowHit].TargetLight)
-				{
 					Fans[WindState.NowHit].TargetLight->SetActorHiddenInGame(true);
+
+			// 这里有可能显示很多  就会出现点亮很多次的BUG
+			for (auto& j : Fans[WindState.NowHit].ScoreLights_) {
+					j->SetMaterial(0, Material[0]);
 				}
-			}
-			if (Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1])
+
+			if (Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1] && !Fans[WindState.NowHit].AlreadyHit)
 			{
 				Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1]->SetMaterial(0, TargetMaterial);
+				Fans[WindState.NowHit].AlreadyHit = 1;
 			}
+
+			// 其他地方的显示
 			if (Fans[WindState.NowHit].ElseLight_)
 			{
 				Fans[WindState.NowHit].ElseLight_->SetMaterial(0, TargetMaterial);
@@ -358,8 +360,24 @@ void UWindContorl::Settings()
 		else if (PlayerController->IsInputKeyDown(EKeys::One))
 			Score_ = 1;
 	}
+	if (RandomHit)
+	{
+		// 假设已经在 KeyState 中添加了 LastRandomHitTime 记录上次随机赋值的时间
+		if (TimeNow - KeyState.LastRandomHitTime > 1.8  && WindState.LastSetWinId!= WindState.NowHit)
+		{
+			// 随机生成 1 到 10 之间的值
+			Score_ = FMath::RandRange(1, 10);
+			//Score_ = 3;
 
-	if (Score_)
+			// 更新随机赋值的时间
+			KeyState.LastRandomHitTime = TimeNow;
+			WindState.LastSetWinId = WindState.NowHit;
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("Now Hit : (%d)  RandomHit Score: (%d) WindState.LastSetWinId  (%d,%d)"),WindState.NowHit, Score_, WindState.LastSetWinId, WindState.NowHit));
+			// 输出调试信息（可选）
+		}
+	}
+
+	if (Score_ && WindState.HitNum<5  )
 	{
 		GEngine->AddOnScreenDebugMessage(3, 8.f, FColor::White, FString::Printf(TEXT("Activate fan[%d]=%d NowHitNum=%d"), WindState.NowHit, Score_, WindState.HitNum));
 		// WindState.HitNum += 1;
@@ -442,45 +460,226 @@ void UWindContorl::Settings()
 		KeyState.SaveModeTime=TimeNow;
 		AutoSave=!AutoSave;
 	}
-	
-	if (CanMove)
+	if ((PlayerController->IsInputKeyDown(EKeys::T) && PlayerController->IsInputKeyDown(EKeys::LeftControl) && TimeNow - KeyState.LastSaveTime > 2.5) || (AutoSave && TimeNow - KeyState.LastSaveTime > AutoSaverTime))
 	{
-		if ((PlayerController->IsInputKeyDown(EKeys::W) || PlayerController->IsInputKeyDown(EKeys::A) || PlayerController->IsInputKeyDown(EKeys::S) || PlayerController->IsInputKeyDown(EKeys::D)) && TimeNow - KeyState.LastChangeCamLocationTime>0.5)
+		KeyState.LastSaveTime = TimeNow;
+		GEngine->AddOnScreenDebugMessage(4, 5.f, FColor::White, FString::Printf(TEXT("CamActors length: %d"), CamActors.Num()));
+		int i = 0;
+		for (auto SceneCaptureActor: CamActors){
+			//SceneCapture= SceneCaptureActor
+			SceneCapture = Cast<USceneCaptureComponent2D>(SceneCaptureActor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
+			if (SceneCapture)
+			{
+				i = i + 1;
+				GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, FString::Printf(TEXT("%d"),i));
+
+				// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is OK"));
+				if (SceneCapture->TextureTarget)
+				{
+					// 我的点总是比我的图像要超前
+					// FPlatformProcess::Sleep(0.1);
+					FVector FanCenterUse = (Fans[WindState.NowHit].ScoreLights[9]->GetActorLocation()); // 我这个时候获取的点
+					WorldPointsConvertToSceen(FanCenterUse);
+					// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is OK"));
+					// FTextureRenderTargetResource *TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
+
+					int32 Width = SceneCapture->TextureTarget->SizeX;  // 获取高度
+					int32 Height = SceneCapture->TextureTarget->SizeY; // 获取宽度
+					// SaveRenderTargetToDisk(SceneCapture->TextureTarget, TEXT("D:/RM/WindExport/1.jpg"), Width, Height, 1);
+					TArray<FColor> OutData;							  // 声明一个Fcolor数组
+					SceneCapture->CaptureScene(); // Capture the scene
+					TextureRenderTargetResource->ReadPixels(OutData); // 读取像素点
+					FString FormattedTime = FDateTime::Now().ToString();
+					ColorToImage(TEXT("D:/RM/WindExport/image/") + FormattedTime + TEXT(".png"), OutData, Width, Height); // 写入到本地存成图片
+					WriteData(TEXT("D:/RM/WindExport/"), FormattedTime);
+					SavedImageNum += 1;
+					// Draw circles on OutData at the positions of KeyPoints
+					// for (const auto& KeyPoint : KeyPoints)
+					// {
+					// 	int32 CenterX = FMath::Clamp(static_cast<int32>(KeyPoint.p.X), 0, Width - 1);
+					// 	int32 CenterY = FMath::Clamp(static_cast<int32>(KeyPoint.p.Y), 0, Height - 1);
+					// 	int32 Radius = 20;
+					// 	for (int32 Y = CenterY - Radius; Y <= CenterY + Radius; Y++)
+					// 	{
+					// 		for (int32 X = CenterX - Radius; X <= CenterX + Radius; X++)
+					// 		{
+					// 			if (FMath::Sqrt(static_cast<float>(FMath::Square(X - CenterX) + FMath::Square(Y - CenterY))) <= Radius)
+					// 			{
+					// 				int32 Index = Y * Width + X;
+					// 				if (OutData.IsValidIndex(Index))
+					// 				{
+					// 					OutData[Index] = FColor(0, 255, 0, 255); // Green color
+					// 				}
+					// 			}
+					// 		}
+					// 	}
+					// }
+					// // Save the modified image
+					// ColorToImage(GerImgName(TEXT("D:/RM/WindExport/"), FormattedTime + TEXT("_marked")), OutData, Width, Height);
+					// FPlatformProcess::Sleep(0.1);
+
+
+				}
+				else
+				{
+					GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is null"));
+				}
+			}
+			else
+			{
+				GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is null"));
+			}
+		}
+	}
+	if (CanMove && PlayerController->IsInputKeyDown(EKeys::LeftControl)==0 && PlayerController->IsInputKeyDown(EKeys::LeftShift) == 0)
+	{
+		// 接受预置输入的 X Y Z Roationg
+		if ((PlayerController->IsInputKeyDown(EKeys::W) || PlayerController->IsInputKeyDown(EKeys::A) || PlayerController->IsInputKeyDown(EKeys::S) || PlayerController->IsInputKeyDown(EKeys::D) || PlayerController->IsInputKeyDown(EKeys::Q) || PlayerController->IsInputKeyDown(EKeys::E)) && TimeNow - KeyState.LastChangeCamLocationTime>0.05)
 		{
 			 KeyState.LastChangeCamLocationTime = TimeNow;
 			// W A S D 控制相机组件移动
 			// Cam
 			FVector CamLocation = CamActor->GetActorLocation();
+			float BaseMove = 5;
 			if (PlayerController->IsInputKeyDown(EKeys::W))
 			{
-				CamLocation.Y += 50;
+				CamLocation.Z += BaseMove;
 				GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Yellow, FString::Printf(TEXT("W Pressed CamLocation.Y is %f"), CamLocation.Y));
 			}
 			else if (PlayerController->IsInputKeyDown(EKeys::S))
 			{
-				CamLocation.Y -= 1;
+				CamLocation.Z -= BaseMove;
 			}
 			if (PlayerController->IsInputKeyDown(EKeys::A))
 			{
-				CamLocation.X -= 1;
+				CamLocation.Y -= BaseMove;
 			}
 			else if (PlayerController->IsInputKeyDown(EKeys::D))
 			{
-				CamLocation.X += 1;
+				CamLocation.Y += BaseMove;
+			}
+
+			if (PlayerController->IsInputKeyDown(EKeys::Q))
+			{
+				CamLocation.X -= BaseMove;
+			}
+			else if (PlayerController->IsInputKeyDown(EKeys::E))
+			{
+				CamLocation.X += BaseMove;
 			}
 			// 更新位置
+			CamActor->SetActorLocation(CamLocation);
+
 
 		}
-		else if (PlayerController->IsInputKeyDown(EKeys::R) && PlayerController->IsInputKeyDown(EKeys::LeftControl) && TimeNow - KeyState.LastChangeCamLocationTime > 0.5){
-			; //重置相机组件位置
+	}
+	
+   // rotation control
+	//if (CanMove && PlayerController->IsInputKeyDown(EKeys::Left) == 0)
+	if (CanMove && PlayerController->IsInputKeyDown(EKeys::LeftControl)==0 && PlayerController->IsInputKeyDown(EKeys::LeftShift))
+	{
+		// 接受旋转输入
+		if ((PlayerController->IsInputKeyDown(EKeys::W) || PlayerController->IsInputKeyDown(EKeys::A) || PlayerController->IsInputKeyDown(EKeys::S) || PlayerController->IsInputKeyDown(EKeys::D) || PlayerController->IsInputKeyDown(EKeys::Q) || PlayerController->IsInputKeyDown(EKeys::E)) && TimeNow - KeyState.LastChangeCamLocationTime > 0.05)
+		{
+			KeyState.LastChangeCamLocationTime = TimeNow;
+
+			// 旋转角度调整
+			FRotator CamRotation = CamActor->GetActorRotation();
+			float BaseRotation = 0.3f;
+
+			if (PlayerController->IsInputKeyDown(EKeys::W))
+			{
+				CamRotation.Pitch += BaseRotation;
+			}
+			else if (PlayerController->IsInputKeyDown(EKeys::S))
+			{
+				CamRotation.Pitch -= BaseRotation;
+			}
+
+			if (PlayerController->IsInputKeyDown(EKeys::A))
+			{
+				CamRotation.Yaw+= BaseRotation;
+			}
+			else if (PlayerController->IsInputKeyDown(EKeys::D))
+			{
+				CamRotation.Yaw -= BaseRotation;
+			}
+
+			if (PlayerController->IsInputKeyDown(EKeys::Q))
+			{
+				CamRotation.Roll -= BaseRotation;
+			}
+			else if (PlayerController->IsInputKeyDown(EKeys::E))
+			{
+				CamRotation.Roll += BaseRotation;
+			}
+
+			// 更新旋转角度
+			CamActor->SetActorRotation(CamRotation);
 		}
-		else if(1){
-			;
-			// 控制相机组件旋转
+	}
+	if (PlayerController->IsInputKeyDown(EKeys::LeftControl) && PlayerController->IsInputKeyDown(EKeys::R) && TimeNow - KeyState.LastChangeCamLocationTime > 0.5)
+	{
+		KeyState.LastChangeCamLocationTime = TimeNow;
+
+		// 设置摄像机初始位置和旋转
+		//FVector InitLocation(750.0f, 0.0f, 236.0f);
+		//FRotator InitRotation(0.0f, 0.0f, 180.0f);
+
+		CamActor->SetActorLocation(InitLocation);
+		CamActor->SetActorRotation(InitRotation);
+
+		// 输出调试信息
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Camera reset to initial position and rotation."));
+	}
+// 在当前位置创建一个取图的相机
+	if (PlayerController->IsInputKeyDown(EKeys::P) && PlayerController->IsInputKeyDown(EKeys::LeftControl) && TimeNow - KeyState.LastChangeCamLocationTime > 0.5) {
+		KeyState.LastChangeCamLocationTime = TimeNow;
+		KeyState.bWasInputActive = !KeyState.bWasInputActive;
+		// CamActor 
+		if (KeyState.bWasInputActive)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Template = CamActor;
+
+			AActor* NewCamActor = GetWorld()->SpawnActor<AActor>(CamActor->GetClass(), CamActor->GetActorLocation(), CamActor->GetActorRotation(), SpawnParams);
+			NewCamActor->SetActorLocation(CamActor->GetActorLocation());
+			NewCamActor->SetActorRotation(CamActor->GetActorRotation());
+			// 从原 Actor 上获取 SceneCaptureComponent2D
+
+			USceneCaptureComponent2D* OldSceneCapture = Cast<USceneCaptureComponent2D>(
+				CamActor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
+
+			if (OldSceneCapture)
+			{
+				// 使用 NewCamActor 作为 Outer 复制该组件
+				USceneCaptureComponent2D* NewSceneCapture = DuplicateObject<USceneCaptureComponent2D>(
+					OldSceneCapture, NewCamActor);
+
+				if (NewSceneCapture)
+				{
+					// 将新复制的组件附加到 NewCamActor 的根组件上
+					NewSceneCapture->AttachToComponent(
+						NewCamActor->GetRootComponent(),
+						FAttachmentTransformRules::KeepRelativeTransform);
+					// 注册组件，确保其在运行时有效
+					NewSceneCapture->RegisterComponent();
+
+					// 如果需要保存引用到全局变量 SceneCapture
+					SceneCapture = NewSceneCapture;
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("复制成功"));
+			}
+			CamActor = NewCamActor;
+			SceneCapture = Cast<USceneCaptureComponent2D>(NewCamActor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
+
+			//if (!SceneCapture)/*GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("SceneCapture是空的"));*/
+			CamActors.Add(CamActor);
+			//UE_LOG(LogTemp, Display, TEXT("复制出新的相机 Actor"));
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("复制出新的相机Actor"));
 		}
 
 	}
-	
 	// 设置能量机关的速度
 	if (WindState.LastSpinMode == WindState.SpinMode && WindState.SpinMode == SPIN_MODE::SMALL)
 		return;
@@ -533,6 +732,10 @@ void UWindContorl::GameInit()
 			UE_LOG(LogTemp, Display, TEXT("GameCamMainActor Find Fine"));
 			CamActor = Actor;
 			Cam = Cast<UCameraComponent>(Actor->GetComponentByClass(UCameraComponent::StaticClass()));
+			// 设置初始位姿
+			InitLocation = CamActor->GetActorLocation();
+			InitRotation = CamActor->GetActorRotation();
+			
 			// Cam->SetMobility(EComponentMobility::Movable);
 			SceneCapture = Cast<USceneCaptureComponent2D>(Actor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
 			if (SceneCapture)
@@ -670,33 +873,16 @@ void UWindContorl::WindRender()
 			// 只有一种情况那就是原来是亮起状态
 			WindState.LastState[i] = FAN_MODE::NOACTIVATE;
 			for (auto &j : Fans[i].FlowLight_)
-			{
 				if (j)
-				{
 					if (j && j->GetMaterial(0))
-					{
 						j->SetMaterial(0, Material[0]);
-						// UE_LOG(LogTemp, Display, TEXT("SET FlowLight Normal Right"));
-					}
 
-					// LOG SETTING FlowLight Right
-				}
-			}
 			if (Fans[i].TargetLight_)
-			{
 				Fans[i].TargetLight_->SetMaterial(0, Material[0]);
-			}
 			if (Fans[i].ElseLight_)
-			{
 				Fans[i].ElseLight_->SetMaterial(0, Material[0]);
-			}
 			for (auto &j : Fans[i].ScoreLights_)
-			{
-				if (j)
-				{
-					j->SetMaterial(0, Material[0]);
-				}
-			}
+				if (j) j->SetMaterial(0, Material[0]);
 		}
 		else if (WindState.state[i] == FAN_MODE::ACTIVING)
 		{
@@ -709,17 +895,9 @@ void UWindContorl::WindRender()
 			{
 				WindState.LastFlowUseState = FlowUseState;
 				for (auto &j : Fans[i].FlowLight_)
-				{
 					if (j)
-					{
 						if (j && j->GetMaterial(0))
-						{
 							j->SetMaterial(0, Material[0]);
-							// UE_LOG(LogTemp, Display, TEXT("SET FlowLight Red Right"));
-						}
-						// LOG SETTING FlowLight Right
-					}
-				}
 				Fans[i].FlowLight_[FlowUseState + 1]->SetMaterial(0, TargetMaterial);
 			}
 			// 静态的亮起只更新一次
@@ -1018,3 +1196,64 @@ bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_)
 	}
 	return 1;
 }
+
+bool ProjectWorldToSceneCapture(const FVector& WorldPosition,
+	const class USceneCaptureComponent2D* SceneCaptureComponent2D,
+	FVector2D& SceneCapturePosition)
+{
+	if (!IsValid(SceneCaptureComponent2D))
+	{
+		return false;
+	}
+	//视口矩阵
+	const FTransform& ViewTransform = SceneCaptureComponent2D->GetComponentToWorld();
+	FMatrix ViewMatrix = ViewTransform.ToInverseMatrixWithScale();
+	ViewMatrix = ViewMatrix * FMatrix(FPlane(0, 0, 1, 0), FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0),
+		FPlane(0, 0, 0, 1));
+
+	const float FOV = SceneCaptureComponent2D->FOVAngle * (float)PI / 360.0f;
+	const FIntPoint CaptureSize(SceneCaptureComponent2D->TextureTarget->GetSurfaceWidth(),
+		SceneCaptureComponent2D->TextureTarget->GetSurfaceHeight());
+	float XAxisMultiplier;
+	float YAxisMultiplier;
+	if (CaptureSize.X > CaptureSize.Y)
+	{
+		XAxisMultiplier = 1.0f;
+		YAxisMultiplier = CaptureSize.X / static_cast<float>(CaptureSize.Y);
+	}
+	else
+	{
+		XAxisMultiplier = CaptureSize.Y / static_cast<float>(CaptureSize.X);
+		YAxisMultiplier = 1.0f;
+	}
+	// 投影矩阵
+	const FMatrix ProjectionMatrix = FReversedZPerspectiveMatrix(FOV, FOV, XAxisMultiplier, YAxisMultiplier,
+		GNearClippingPlane, GNearClippingPlane);
+	const FMatrix ViewProjectionMatrix = ViewMatrix * ProjectionMatrix;
+	const FPlane Result = ViewProjectionMatrix.TransformFVector4(FVector4(WorldPosition, 1.f));
+	const FIntRect viewRect = FIntRect(0, 0, CaptureSize.X, CaptureSize.Y);
+	if (Result.W > 0.0f)
+	{
+		// the result of this will be x and y coords in -1..1 projection space
+		const float RHW = 1.0f / Result.W;
+		const FPlane PosInScreenSpace = FPlane(Result.X * RHW, Result.Y * RHW, Result.Z * RHW, Result.W);
+
+		// Move from projection space to normalized 0..1 UI space
+		const float NormalizedX = (PosInScreenSpace.X / 2.f) + 0.5f;
+		const float NormalizedY = 1.f - (PosInScreenSpace.Y / 2.f) - 0.5f;
+
+		const FVector2D RayStartViewRectSpace(
+			(NormalizedX * static_cast<float>(viewRect.Width())),
+			(NormalizedY * static_cast<float>(viewRect.Height()))
+		);
+
+		SceneCapturePosition = RayStartViewRectSpace + FVector2D(static_cast<float>(viewRect.Min.X),
+			static_cast<float>(viewRect.Min.Y));
+
+		return true;
+	}
+	return false;
+}
+
+
+//  设置摄像机位置函数
