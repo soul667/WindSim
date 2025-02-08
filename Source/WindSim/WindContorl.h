@@ -17,7 +17,7 @@
 
 #include "Components/LightComponent.h"
 #include "Camera/CameraComponent.h"
-
+#include "Components/SceneCaptureComponent2D.h"
 // 截图
 
 #include "Components/SceneCaptureComponent2D.h" // Add this include statement
@@ -75,7 +75,7 @@ public:
 	UStaticMeshComponent* WindMainPart1;
 	UStaticMeshComponent* WindMainPart2;
 	UStaticMeshComponent* CenterLight_;
-
+	AActor* CenterActorUse;
 	TArray<ULightComponent*> EnvironmentLights;// 环境灯光 
 	AActor* CamActor;
 	UCameraComponent* Cam;
@@ -197,7 +197,7 @@ protected:
 	void LoadMaterial();
 	void GameInit();
 	void WindRender();
-	bool ProjectWorldToSceneCapture(const FVector& WorldPosition, const USceneCaptureComponent2D* SceneCaptureComponent2D, FVector2D& SceneCapturePosition);
+	bool ProjectWorldToSceneCapture(USceneCaptureComponent2D* SceneCaptureComponent2D, const FVector& WorldPosition, FVector2D& ScreenPosition);
 
 	//inline void CheckNumber();
 	void ColorToImage(const FString& InImagePath, TArray<FColor> InColor, int32 InWidth, int32 InHight);
@@ -207,11 +207,13 @@ protected:
 	bool InitCamMatrix();// 如果相机位置发生改变就需要重新计算相机矩阵
 	bool WorldPointsInit(); // 解析Yaml文件
 	FVector2d ConverToImgSize(FVector2d UseVec);
-	bool WorldPointsConvertToSceen(FVector FanCenter_);
+	bool WorldPointsConvertToSceen(FVector FanCenter_, USceneCaptureComponent2D* SceneCapture);
+	bool ProjectWorldTo2DSceneCapture(USceneCaptureComponent2D* SceneCaptureComponent2D, const FVector& WorldPosition, FVector2D& ScreenPosition);
+
 	FVector InitLocation;
 	FRotator InitRotation;
 	bool RandomHit = 1; // 随机按下
-
+	FVector2D FanCenterUse2D;
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

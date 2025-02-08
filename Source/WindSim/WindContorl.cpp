@@ -390,68 +390,76 @@ void UWindContorl::Settings()
 		WindState.LastState[WindState.NowHit] = FAN_MODE::ACTIVED;
 	}
 
-	else if ((PlayerController->IsInputKeyDown(EKeys::S) && PlayerController->IsInputKeyDown(EKeys::LeftControl)&& TimeNow - KeyState.LastSaveTime > 0.5)||(AutoSave && TimeNow - KeyState.LastSaveTime > AutoSaverTime))
-	{
-		KeyState.LastSaveTime = TimeNow;
-		if (SceneCapture)
-		{
-			// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is OK"));
-			if (SceneCapture->TextureTarget)
-			{
-				// 我的点总是比我的图像要超前
-				// FPlatformProcess::Sleep(0.1);
-				FVector FanCenterUse = (Fans[WindState.NowHit].ScoreLights[9]->GetActorLocation()); // 我这个时候获取的点
-				WorldPointsConvertToSceen(FanCenterUse);
-				// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is OK"));
-				// FTextureRenderTargetResource *TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
-				
-				int32 Width = SceneCapture->TextureTarget->SizeX;  // 获取高度
-				int32 Height = SceneCapture->TextureTarget->SizeY; // 获取宽度
-				// SaveRenderTargetToDisk(SceneCapture->TextureTarget, TEXT("D:/RM/WindExport/1.jpg"), Width, Height, 1);
-				TArray<FColor> OutData;							  // 声明一个Fcolor数组
-				SceneCapture->CaptureScene(); // Capture the scene
-				TextureRenderTargetResource->ReadPixels(OutData); // 读取像素点
-				FString FormattedTime = FDateTime::Now().ToString();
-				ColorToImage(TEXT("D:/RM/WindExport/image/") + FormattedTime + TEXT(".png"), OutData, Width, Height); // 写入到本地存成图片
-				WriteData(TEXT("D:/RM/WindExport/"), FormattedTime);
-				SavedImageNum+=1;
-				// Draw circles on OutData at the positions of KeyPoints
-				// for (const auto& KeyPoint : KeyPoints)
-				// {
-				// 	int32 CenterX = FMath::Clamp(static_cast<int32>(KeyPoint.p.X), 0, Width - 1);
-				// 	int32 CenterY = FMath::Clamp(static_cast<int32>(KeyPoint.p.Y), 0, Height - 1);
-				// 	int32 Radius = 20;
-				// 	for (int32 Y = CenterY - Radius; Y <= CenterY + Radius; Y++)
-				// 	{
-				// 		for (int32 X = CenterX - Radius; X <= CenterX + Radius; X++)
-				// 		{
-				// 			if (FMath::Sqrt(static_cast<float>(FMath::Square(X - CenterX) + FMath::Square(Y - CenterY))) <= Radius)
-				// 			{
-				// 				int32 Index = Y * Width + X;
-				// 				if (OutData.IsValidIndex(Index))
-				// 				{
-				// 					OutData[Index] = FColor(0, 255, 0, 255); // Green color
-				// 				}
-				// 			}
-				// 		}
-				// 	}
-				// }
-				// // Save the modified image
-				// ColorToImage(GerImgName(TEXT("D:/RM/WindExport/"), FormattedTime + TEXT("_marked")), OutData, Width, Height);
-				// FPlatformProcess::Sleep(0.1);
+	//else if ((PlayerController->IsInputKeyDown(EKeys::S) && PlayerController->IsInputKeyDown(EKeys::LeftControl)&& TimeNow - KeyState.LastSaveTime > 0.5)||(AutoSave && TimeNow - KeyState.LastSaveTime > AutoSaverTime))
+	//{
+	//	KeyState.LastSaveTime = TimeNow;
+	//	if (SceneCapture)
+	//	{
+	//		// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is OK"));
+
+	//		if (SceneCapture->TextureTarget)
+	//		{
+	//			// 我的点总是比我的图像要超前
+	//			// FPlatformProcess::Sleep(0.1);
+	//			// 击打的中心点 
+	//			FVector FanCenterUse = (Fans[WindState.NowHit].ScoreLights[9]->GetActorLocation()); // 我这个时候获取的点
+	//			//WorldPointsConvertToSceen
+	//			ProjectWorldTo2DSceneCapture(SceneCapture, FanCenterUse, FanCenterUse2D);
+
+	//			//FanCenterUse = FanCenterUse;
+	//			WorldPointsConvertToSceen(FanCenterUse, SceneCapture);
+	//			//ProjectWorldTo2DSceneCapture(FanCenterUse, SceneCapture, SceneCapture);
+
+	//			// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is OK"));
+	//			// FTextureRenderTargetResource *TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
+	//			
+	//			int32 Width = SceneCapture->TextureTarget->SizeX;  // 获取高度
+	//			int32 Height = SceneCapture->TextureTarget->SizeY; // 获取宽度
+	//			// SaveRenderTargetToDisk(SceneCapture->TextureTarget, TEXT("D:/RM/WindExport/1.jpg"), Width, Height, 1);
+	//			TArray<FColor> OutData;							  // 声明一个Fcolor数组
+	//			SceneCapture->CaptureScene(); // Capture the scene
+	//			TextureRenderTargetResource->ReadPixels(OutData); // 读取像素点
+	//			FString FormattedTime = FDateTime::Now().ToString();
+	//			ColorToImage(TEXT("D:/RM/WindExport/image/") + FormattedTime + TEXT(".png"), OutData, Width, Height); // 写入到本地存成图片
+	//			WriteData(TEXT("D:/RM/WindExport/"), FormattedTime);
+	//			SavedImageNum+=1;
+	//			// Draw circles on OutData at the positions of KeyPoints
+	//			// for (const auto& KeyPoint : KeyPoints)
+	//			// {
+	//			// 	int32 CenterX = FMath::Clamp(static_cast<int32>(KeyPoint.p.X), 0, Width - 1);
+	//			// 	int32 CenterY = FMath::Clamp(static_cast<int32>(KeyPoint.p.Y), 0, Height - 1);
+	//			// 	int32 Radius = 20;
+	//			// 	for (int32 Y = CenterY - Radius; Y <= CenterY + Radius; Y++)
+	//			// 	{
+	//			// 		for (int32 X = CenterX - Radius; X <= CenterX + Radius; X++)
+	//			// 		{
+	//			// 			if (FMath::Sqrt(static_cast<float>(FMath::Square(X - CenterX) + FMath::Square(Y - CenterY))) <= Radius)
+	//			// 			{
+	//			// 				int32 Index = Y * Width + X;
+	//			// 				if (OutData.IsValidIndex(Index))
+	//			// 				{
+	//			// 					OutData[Index] = FColor(0, 255, 0, 255); // Green color
+	//			// 				}
+	//			// 			}
+	//			// 		}
+	//			// 	}
+	//			// }
+	//			// // Save the modified image
+	//			// ColorToImage(GerImgName(TEXT("D:/RM/WindExport/"), FormattedTime + TEXT("_marked")), OutData, Width, Height);
+	//			// FPlatformProcess::Sleep(0.1);
 
 
-			}
-			else
-			{
-				GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is null"));
-			}
-		}
-		else
-		{
-			GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is null"));
-		}
-	}
+	//		}
+	//		else
+	//		{
+	//			GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is null"));
+	//		}
+	//	}
+	//	else
+	//	{
+	//		GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is null"));
+	//	}
+	//}
 	else if (PlayerController->IsInputKeyDown(EKeys::L) && PlayerController->IsInputKeyDown(EKeys::LeftControl) && TimeNow - KeyState.LastCanUseTime > 0.5){
 		KeyState.LastCanUseTime=TimeNow;
 		CanMove=!CanMove;
@@ -460,6 +468,8 @@ void UWindContorl::Settings()
 		KeyState.SaveModeTime=TimeNow;
 		AutoSave=!AutoSave;
 	}
+
+	// 多相机取图
 	if ((PlayerController->IsInputKeyDown(EKeys::T) && PlayerController->IsInputKeyDown(EKeys::LeftControl) && TimeNow - KeyState.LastSaveTime > 2.5) || (AutoSave && TimeNow - KeyState.LastSaveTime > AutoSaverTime))
 	{
 		KeyState.LastSaveTime = TimeNow;
@@ -470,16 +480,18 @@ void UWindContorl::Settings()
 			SceneCapture = Cast<USceneCaptureComponent2D>(SceneCaptureActor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
 			if (SceneCapture)
 			{
-				i = i + 1;
-				GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, FString::Printf(TEXT("%d"),i));
+				//GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, FString::Printf(TEXT("%d"),i));
+				
 
 				// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture is OK"));
 				if (SceneCapture->TextureTarget)
 				{
+					i = i + 1;
+
 					// 我的点总是比我的图像要超前
 					// FPlatformProcess::Sleep(0.1);
 					FVector FanCenterUse = (Fans[WindState.NowHit].ScoreLights[9]->GetActorLocation()); // 我这个时候获取的点
-					WorldPointsConvertToSceen(FanCenterUse);
+					WorldPointsConvertToSceen(FanCenterUse, SceneCapture);
 					// GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::White, TEXT("SceneCapture->TextureTarget is OK"));
 					// FTextureRenderTargetResource *TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
 
@@ -490,35 +502,16 @@ void UWindContorl::Settings()
 					SceneCapture->CaptureScene(); // Capture the scene
 					TextureRenderTargetResource->ReadPixels(OutData); // 读取像素点
 					FString FormattedTime = FDateTime::Now().ToString();
+					FormattedTime += FString::Printf(TEXT("_%d"), i);
+					//UE_LOG(LogTemp, Display, TEXT("多相机取图%s"),FormattedTime);
+					//UE_LOG(LogTemp, Display, TEXT("多相机取图: %s"), *FormattedTime);
+					//UE_LOG(LogTemp, Display, TEXT("相机位置: %d"), SceneCaptureActor->GetActorLocation()); //fix
+					UE_LOG(LogTemp, Display, TEXT("相机位置: %s"), *SceneCaptureActor->GetActorLocation().ToString());
+
+
 					ColorToImage(TEXT("D:/RM/WindExport/image/") + FormattedTime + TEXT(".png"), OutData, Width, Height); // 写入到本地存成图片
 					WriteData(TEXT("D:/RM/WindExport/"), FormattedTime);
 					SavedImageNum += 1;
-					// Draw circles on OutData at the positions of KeyPoints
-					// for (const auto& KeyPoint : KeyPoints)
-					// {
-					// 	int32 CenterX = FMath::Clamp(static_cast<int32>(KeyPoint.p.X), 0, Width - 1);
-					// 	int32 CenterY = FMath::Clamp(static_cast<int32>(KeyPoint.p.Y), 0, Height - 1);
-					// 	int32 Radius = 20;
-					// 	for (int32 Y = CenterY - Radius; Y <= CenterY + Radius; Y++)
-					// 	{
-					// 		for (int32 X = CenterX - Radius; X <= CenterX + Radius; X++)
-					// 		{
-					// 			if (FMath::Sqrt(static_cast<float>(FMath::Square(X - CenterX) + FMath::Square(Y - CenterY))) <= Radius)
-					// 			{
-					// 				int32 Index = Y * Width + X;
-					// 				if (OutData.IsValidIndex(Index))
-					// 				{
-					// 					OutData[Index] = FColor(0, 255, 0, 255); // Green color
-					// 				}
-					// 			}
-					// 		}
-					// 	}
-					// }
-					// // Save the modified image
-					// ColorToImage(GerImgName(TEXT("D:/RM/WindExport/"), FormattedTime + TEXT("_marked")), OutData, Width, Height);
-					// FPlatformProcess::Sleep(0.1);
-
-
 				}
 				else
 				{
@@ -543,12 +536,12 @@ void UWindContorl::Settings()
 			float BaseMove = 5;
 			if (PlayerController->IsInputKeyDown(EKeys::W))
 			{
-				CamLocation.Z += BaseMove;
-				GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Yellow, FString::Printf(TEXT("W Pressed CamLocation.Y is %f"), CamLocation.Y));
+				CamLocation.Z -= BaseMove;
+				//GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Yellow, FString::Printf(TEXT("W Pressed CamLocation.Y is %f"), CamLocation.Y));
 			}
 			else if (PlayerController->IsInputKeyDown(EKeys::S))
 			{
-				CamLocation.Z -= BaseMove;
+				CamLocation.Z += BaseMove;
 			}
 			if (PlayerController->IsInputKeyDown(EKeys::A))
 			{
@@ -589,11 +582,11 @@ void UWindContorl::Settings()
 
 			if (PlayerController->IsInputKeyDown(EKeys::W))
 			{
-				CamRotation.Pitch += BaseRotation;
+				CamRotation.Pitch -= BaseRotation;
 			}
 			else if (PlayerController->IsInputKeyDown(EKeys::S))
 			{
-				CamRotation.Pitch -= BaseRotation;
+				CamRotation.Pitch += BaseRotation;
 			}
 
 			if (PlayerController->IsInputKeyDown(EKeys::A))
@@ -637,7 +630,8 @@ void UWindContorl::Settings()
 		KeyState.LastChangeCamLocationTime = TimeNow;
 		KeyState.bWasInputActive = !KeyState.bWasInputActive;
 		// CamActor 
-		if (KeyState.bWasInputActive)
+		//if (KeyState.bWasInputActive)
+		if(1)
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Template = CamActor;
@@ -645,6 +639,7 @@ void UWindContorl::Settings()
 			AActor* NewCamActor = GetWorld()->SpawnActor<AActor>(CamActor->GetClass(), CamActor->GetActorLocation(), CamActor->GetActorRotation(), SpawnParams);
 			NewCamActor->SetActorLocation(CamActor->GetActorLocation());
 			NewCamActor->SetActorRotation(CamActor->GetActorRotation());
+			UE_LOG(LogTemp, Display, TEXT("相机-位置: %s"), *CamActor->GetActorLocation().ToString());
 			// 从原 Actor 上获取 SceneCaptureComponent2D
 
 			USceneCaptureComponent2D* OldSceneCapture = Cast<USceneCaptureComponent2D>(
@@ -670,11 +665,11 @@ void UWindContorl::Settings()
 				}
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("复制成功"));
 			}
+			CamActors.Add(CamActor);
 			CamActor = NewCamActor;
 			SceneCapture = Cast<USceneCaptureComponent2D>(NewCamActor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
 
 			//if (!SceneCapture)/*GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("SceneCapture是空的"));*/
-			CamActors.Add(CamActor);
 			//UE_LOG(LogTemp, Display, TEXT("复制出新的相机 Actor"));
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("复制出新的相机Actor"));
 		}
@@ -773,6 +768,7 @@ void UWindContorl::GameInit()
 		}
 		if (Actor->Tags[0].ToString().Contains(TEXT("WindSpin-1_R-1_RLight-1")))
 		{
+			CenterActorUse = Actor;
 			CenterLight_ = Cast<UStaticMeshComponent>(Actor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 			if (CenterLight_)
 			{
@@ -978,11 +974,23 @@ bool UWindContorl::WriteData(FString Path, FString Name)
 		TextLines.Add(FString::Printf(TEXT("    Area: [%f,%f,%f,%f]"),(Area.LeftTop.X),(Area.LeftTop.Y),(Area.RightBottom.X),(Area.RightBottom.Y)));
 	}
 	TextLines.Add(TEXT("KeyPoints: "));
+	//int i = 0;
 	for(auto &KeyPoint:KeyPoints)
 	{
+		//i = i + 1;
+		//if (i > 26) break;
 		TextLines.Add(FString::Printf(TEXT("  - Name: %s"),*(KeyPoint.PointName)));
 		TextLines.Add(FString::Printf(TEXT("    Point: [%f,%f]"),(KeyPoint.p.X),(KeyPoint.p.Y)));
 	}
+
+	TextLines.Add(TEXT("Camera Postion: "));
+	TextLines.Add(TEXT("Camera Rotation: "));
+
+	//TextLines.Add(TEXT("HitCenterPoints: "));
+	//TextLines.Add(FString::Printf(TEXT("    Point: [%f,%f]"), (FanCenterUse2D.X), (FanCenterUse2D.Y)));
+
+	//TextLines.Add(FString::Printf(TEXT("  - Name: %f"), FanCenterUse);
+
 	FFileHelper::SaveStringArrayToFile(TextLines, *FormattedTime, FFileHelper::EEncodingOptions::ForceUTF8);
 	return 0;
 }
@@ -1090,8 +1098,10 @@ FVector2d UWindContorl::ConverToImgSize(FVector2d UseVec)
 	return RealVec;
 
 }
-bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_)
+
+bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_, USceneCaptureComponent2D* SceneCaptureUse)
 {
+
 	// 清除Areas所有元素
 	Areas.Empty();
 	KeyPoints.Empty();
@@ -1102,15 +1112,17 @@ bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_)
 	TArray<FVector2D> UsePoints;
 	FVector2D ViewSize;
 	GEngine->GameViewport->GetViewportSize(ViewSize);
+	FVector Rcenter = CenterActorUse->GetActorLocation();
 	for (int i = 1; i <= 8; i++)
 	{
 		// FVector RotatedVector3D = RotationQuat.RotateVector(RPoints[i] + RPoints[0]);
-		FVector RotatedVector3D = (RPoints[i] + RPoints[0]);
+		FVector RotatedVector3D = (RPoints[i] + Rcenter);
 		FVector2D ScreenPosition;
-		PlayerController->ProjectWorldLocationToScreen(RotatedVector3D, ScreenPosition);
+		//PlayerController->ProjectWorldLocationToScreen(RotatedVector3D, ScreenPosition);
+		ProjectWorldTo2DSceneCapture(SceneCaptureUse,RotatedVector3D, ScreenPosition);
 		// 获取当前屏幕尺寸
 		//UE_LOG(LogTemp, Log, TEXT("Sceen Point Size is %f %f"), ScreenPosition.X, ScreenPosition.Y);
-		ScreenPosition = ConverToImgSize(ScreenPosition);
+		//ScreenPosition = ConverToImgSize(ScreenPosition);
 		UsePoints.Add(ScreenPosition);
 		//UE_LOG(LogTemp, Log, TEXT("Projected %d Position: X=%f, Y=%f"), i, ScreenPosition.X, ScreenPosition.Y);
 	}
@@ -1152,20 +1164,24 @@ bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_)
 	Ix.Normalize();
 	Iy.Normalize();
 	FVector2D ScreenPosition;
-	PlayerController->ProjectWorldLocationToScreen(TargetLightCenter, ScreenPosition);
+	//PlayerController->ProjectWorldLocationToScreen(TargetLightCenter, ScreenPosition);
+	ProjectWorldTo2DSceneCapture(SceneCaptureUse, TargetLightCenter, ScreenPosition);
+
 	// 获取当前屏幕尺寸
 	// UE_LOG(LogTemp, Log, TEXT("Sceen Point Size is %f %f"), ScreenPosition.X, ScreenPosition.Y);
-	ScreenPosition = ConverToImgSize(ScreenPosition);
+	//ScreenPosition = ConverToImgSize(ScreenPosition);
 	KeyPoints.Add({ScreenPosition, FString::Printf(TEXT("TarGetLight"))});
 	// 找各个点所对应的投影点
 	for(int i=0;i<32;i++){
 		FVector2d Use2D=FanPoints[i];
 		FVector UseVector=TargetLightCenter+Ix*Use2D.X+Iy*Use2D.Y;
 		//FVector2D ScreenPosition;
-		PlayerController->ProjectWorldLocationToScreen(UseVector, ScreenPosition);
+		//PlayerController->ProjectWorldLocationToScreen(UseVector, ScreenPosition);
+		ProjectWorldTo2DSceneCapture(SceneCaptureUse,UseVector, ScreenPosition);
+
 		// 获取当前屏幕尺寸
 		//UE_LOG(LogTemp, Log, TEXT("Sceen Point Size is %f %f"), ScreenPosition.X, ScreenPosition.Y);
-		ScreenPosition = ConverToImgSize(ScreenPosition);
+		//ScreenPosition = ConverToImgSize(ScreenPosition);
 		KeyPoints.Add({ScreenPosition, FString::Printf(TEXT("P%d"), i+1)});
 	}
 
@@ -1186,74 +1202,41 @@ bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_)
 	clampedMaxX = FMath::Clamp(maxX + TZ, 0.f, 1440.f);
 	clampedMaxY = FMath::Clamp(maxY + TZ, 0.f, 1080.f);
 
-	Areas.Add({FVector2D(clampedMinX, clampedMinY), FVector2D(clampedMaxX, clampedMaxY), TEXT("KeyPoint")});
+	Areas.Add({FVector2D(clampedMinX, clampedMinY), FVector2D(clampedMaxX, clampedMaxY), TEXT("Target")});
 	for (int i = 0; i < 12; i++) {
 		FVector2d Use2D = FVector2d(OutPoints[i].X, OutPoints[i].Y);
 		FVector UseVector = TargetLightCenter + Ix * Use2D.X + Iy * Use2D.Y;
-		PlayerController->ProjectWorldLocationToScreen(UseVector, ScreenPosition);
-		ScreenPosition = ConverToImgSize(ScreenPosition);
+		//PlayerController->ProjectWorldLocationToScreen(UseVector, ScreenPosition);
+		ProjectWorldTo2DSceneCapture(SceneCaptureUse, UseVector, ScreenPosition);
+
+		//ScreenPosition = ConverToImgSize(ScreenPosition);
 		KeyPoints.Add({ ScreenPosition, FString::Printf(TEXT("Out%d"), i + 1) });
 	}
 	return 1;
 }
 
-bool ProjectWorldToSceneCapture(const FVector& WorldPosition,
-	const class USceneCaptureComponent2D* SceneCaptureComponent2D,
-	FVector2D& SceneCapturePosition)
+bool UWindContorl::ProjectWorldTo2DSceneCapture(USceneCaptureComponent2D* SceneCaptureComponent2D,const FVector& WorldPosition, FVector2D& ScreenPosition)
 {
-	if (!IsValid(SceneCaptureComponent2D))
-	{
+	if (!SceneCaptureComponent2D || !SceneCaptureComponent2D->TextureTarget) {
+		ScreenPosition = FVector2D::ZeroVector;
+		//UE_LOG()
+		//UE_LOG(LogTemp, Log, TEXT("wrong ProjectWorldTo2DSceneCapture"));
 		return false;
 	}
-	//视口矩阵
-	const FTransform& ViewTransform = SceneCaptureComponent2D->GetComponentToWorld();
-	FMatrix ViewMatrix = ViewTransform.ToInverseMatrixWithScale();
-	ViewMatrix = ViewMatrix * FMatrix(FPlane(0, 0, 1, 0), FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0),
-		FPlane(0, 0, 0, 1));
-
-	const float FOV = SceneCaptureComponent2D->FOVAngle * (float)PI / 360.0f;
-	const FIntPoint CaptureSize(SceneCaptureComponent2D->TextureTarget->GetSurfaceWidth(),
-		SceneCaptureComponent2D->TextureTarget->GetSurfaceHeight());
-	float XAxisMultiplier;
-	float YAxisMultiplier;
-	if (CaptureSize.X > CaptureSize.Y)
-	{
-		XAxisMultiplier = 1.0f;
-		YAxisMultiplier = CaptureSize.X / static_cast<float>(CaptureSize.Y);
+	TOptional<FMatrix> CustomProjectionMatrix;
+	if (SceneCaptureComponent2D->bUseCustomProjectionMatrix) {
+		CustomProjectionMatrix = SceneCaptureComponent2D->CustomProjectionMatrix;
 	}
-	else
-	{
-		XAxisMultiplier = CaptureSize.Y / static_cast<float>(CaptureSize.X);
-		YAxisMultiplier = 1.0f;
-	}
-	// 投影矩阵
-	const FMatrix ProjectionMatrix = FReversedZPerspectiveMatrix(FOV, FOV, XAxisMultiplier, YAxisMultiplier,
-		GNearClippingPlane, GNearClippingPlane);
-	const FMatrix ViewProjectionMatrix = ViewMatrix * ProjectionMatrix;
-	const FPlane Result = ViewProjectionMatrix.TransformFVector4(FVector4(WorldPosition, 1.f));
-	const FIntRect viewRect = FIntRect(0, 0, CaptureSize.X, CaptureSize.Y);
-	if (Result.W > 0.0f)
-	{
-		// the result of this will be x and y coords in -1..1 projection space
-		const float RHW = 1.0f / Result.W;
-		const FPlane PosInScreenSpace = FPlane(Result.X * RHW, Result.Y * RHW, Result.Z * RHW, Result.W);
+	FMinimalViewInfo ViewInfo;
+	SceneCaptureComponent2D->GetCameraView(0.0f, ViewInfo);
+	FMatrix OutViewMatrix, ProjectionMatrix, ViewProjectionMatrix;
+	UGameplayStatics::CalculateViewProjectionMatricesFromMinimalView(ViewInfo, CustomProjectionMatrix, OutViewMatrix, ProjectionMatrix, ViewProjectionMatrix);
+	FIntPoint TargetSize(SceneCaptureComponent2D->TextureTarget->SizeX, SceneCaptureComponent2D->TextureTarget->SizeY);
+	FIntRect ViewRect(FIntPoint(0, 0), TargetSize);
+	bool bResult = FSceneView::ProjectWorldToScreen(WorldPosition, ViewRect, ViewProjectionMatrix, ScreenPosition);
+	//UE_LOG(LogTemp, Log, TEXT("ProjectWorldTo2DSceneCapture %lf %lf"), ScreenPosition.X, ScreenPosition.Y);
 
-		// Move from projection space to normalized 0..1 UI space
-		const float NormalizedX = (PosInScreenSpace.X / 2.f) + 0.5f;
-		const float NormalizedY = 1.f - (PosInScreenSpace.Y / 2.f) - 0.5f;
-
-		const FVector2D RayStartViewRectSpace(
-			(NormalizedX * static_cast<float>(viewRect.Width())),
-			(NormalizedY * static_cast<float>(viewRect.Height()))
-		);
-
-		SceneCapturePosition = RayStartViewRectSpace + FVector2D(static_cast<float>(viewRect.Min.X),
-			static_cast<float>(viewRect.Min.Y));
-
-		return true;
-	}
-	return false;
+	return bResult;
 }
-
 
 //  设置摄像机位置函数
