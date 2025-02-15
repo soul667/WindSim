@@ -75,8 +75,11 @@ public:
 	UStaticMeshComponent* WindMainPart1;
 	UStaticMeshComponent* WindMainPart2;
 	UStaticMeshComponent* CenterLight_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	AActor* CenterActorUse;
 	TArray<ULightComponent*> EnvironmentLights;// 环境灯光 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	AActor* CamActor;
 	UCameraComponent* Cam;
     //#include "Components/PointLightComponent.h"
@@ -122,7 +125,7 @@ public:
 		float LastChangeCamLocationTime=0;
 		float SaveModeTime=0;
 		float LastRandomHitTime=0;
-
+		float LastChangeColorTime = 0;
 		bool bWasInputActive = false;
 	}KeyState; //加入延时按键防止一直来回切换模式
 	struct State {

@@ -319,8 +319,11 @@ void UWindContorl::Settings()
 			WindState.SpinMode = SPIN_MODE::SMALL;
 		}
 	} // 修复问题2: 添加分号
-	else if (PlayerController->IsInputKeyDown(EKeys::C) && TimeNow - KeyState.LastColorModeTime > 0.5)
+	else if ((PlayerController->IsInputKeyDown(EKeys::C) && TimeNow - KeyState.LastColorModeTime > 0.5)||(TimeNow - KeyState.LastChangeColorTime > 30) )
 	{
+		if (TimeNow - KeyState.LastChangeColorTime > 3) {
+			KeyState.LastChangeColorTime = TimeNow;
+		}
 		KeyState.LastColorModeTime = GetWorld()->GetTimeSeconds();
 		if (WindState.Color == COLOR_GAME::RED)
 		{
@@ -335,6 +338,40 @@ void UWindContorl::Settings()
 			TargetMaterial = Material[1];
 		}
 		ColorChange = true;
+		//WindState.LastHitTime = ElapsedTime; // 超过2S还未击打就更新下一片
+		for (int i = 0; i <= 4; i++)
+		{
+			WindState.state[i] = FAN_MODE::NOACTIVATE;
+			Fans[i].Score = 0;
+			Fans[i].AlreadyHit = 0;
+			if (Fans[i].TargetLight)
+			{
+				Fans[i].TargetLight->SetActorHiddenInGame(false);
+			}
+
+		}
+		// 生成一个随机数
+		// 假如已经打中了x环 还剩下x-1环 那么
+		WindState.HitNum = 0;
+		int StartNum = FMath::RandRange(0, 5 - WindState.HitNum - 1); // 从第x个数出发后面的第一个可击打的扇叶
+		int UseNum = 1;
+		for (int i = 1; i <= UseNum; i++)
+		{
+			int j = (WindState.NowHit + i) % 5;
+			if (WindState.state[j] == FAN_MODE::ACTIVED)
+				UseNum = UseNum + 1;
+			else
+			{
+				WindState.NowHit = j;
+				break;
+			}
+			// while(WindState.)
+		}
+		// WindState.NowHit
+		WindState.state[WindState.NowHit] = FAN_MODE::ACTIVING; // 正在激活状态
+		WindState.HitNum = 1;
+		//ChangeMode();
+
 	}
 	int Score_ = 0;
 	if (TimeNow - KeyState.LastActivateModeTime > 0.3)
@@ -532,7 +569,14 @@ void UWindContorl::Settings()
 			 KeyState.LastChangeCamLocationTime = TimeNow;
 			// W A S D 控制相机组件移动
 			// Cam
-			FVector CamLocation = CamActor->GetActorLocation();
+			//FVector CamLocation = CamActor->GetActorLocation();
+			 if (!CamActor)
+			 {
+				 UE_LOG(LogTemp, Error, TEXT("CamActor 未初始化！"));
+				 return;
+			 }
+			 FVector CamLocation = CamActor->GetActorLocation();
+
 			float BaseMove = 5;
 			if (PlayerController->IsInputKeyDown(EKeys::W))
 			{
@@ -722,24 +766,28 @@ void UWindContorl::GameInit()
 			WindSpinActor->SetActorRotation(RotatorUse);
 			WindSpinContorl = Cast<URotatingMovementComponent>(Actor->GetComponentByClass(URotatingMovementComponent::StaticClass()));
 		}
-		if (Actor->Tags[0].ToString().Contains(TEXT("GameCamMain")))
-		{ // 注意是就等于
-			UE_LOG(LogTemp, Display, TEXT("GameCamMainActor Find Fine"));
-			CamActor = Actor;
-			Cam = Cast<UCameraComponent>(Actor->GetComponentByClass(UCameraComponent::StaticClass()));
-			// 设置初始位姿
-			InitLocation = CamActor->GetActorLocation();
-			InitRotation = CamActor->GetActorRotation();
-			
-			// Cam->SetMobility(EComponentMobility::Movable);
-			SceneCapture = Cast<USceneCaptureComponent2D>(Actor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
-			if (SceneCapture)
-			{
-				// 输出Cam的曝光
-				//	Cam->PostProcessSettings.expo
-				UE_LOG(LogTemp, Display, TEXT("SceneCapture Fine"));
-				// 保存图像
-				// SceneCapture->CaptureScene();
+		for (const FName& Tag : Actor->Tags)
+		{
+			if (Tag.ToString().Contains(TEXT("GameCamMain"))) // 精确匹配FName，避免字符串转换
+				//if (Actor->Tags[0].ToString().Contains(TEXT("GameCamMain")))
+			{ // 注意是就等于
+				UE_LOG(LogTemp, Display, TEXT("GameCamMainActor Find Fine"));
+				CamActor = Actor;
+				Cam = Cast<UCameraComponent>(Actor->GetComponentByClass(UCameraComponent::StaticClass()));
+				// 设置初始位姿
+				InitLocation = CamActor->GetActorLocation();
+				InitRotation = CamActor->GetActorRotation();
+
+				// Cam->SetMobility(EComponentMobility::Movable);
+				SceneCapture = Cast<USceneCaptureComponent2D>(Actor->GetComponentByClass(USceneCaptureComponent2D::StaticClass()));
+				if (SceneCapture)
+				{
+					// 输出Cam的曝光
+					//	Cam->PostProcessSettings.expo
+					UE_LOG(LogTemp, Display, TEXT("SceneCapture Fine"));
+					// 保存图像
+					// SceneCapture->CaptureScene();
+				}
 			}
 		}
 
@@ -816,7 +864,7 @@ void UWindContorl::GameInit()
 		GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, TEXT("Play Get Ok"));
 		PlayerController->EnableInput(PlayerController);
 	}
-	TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
+	//TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
 
 }
 void UWindContorl::LoadMaterial()
