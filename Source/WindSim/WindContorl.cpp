@@ -1260,6 +1260,26 @@ bool UWindContorl::WorldPointsConvertToSceen(FVector FanCenter_, USceneCaptureCo
 		//ScreenPosition = ConverToImgSize(ScreenPosition);
 		KeyPoints.Add({ ScreenPosition, FString::Printf(TEXT("Out%d"), i + 1) });
 	}
+
+	minX = FLT_MAX, minY = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN;
+	for (const auto& Point : KeyPoints)
+	{
+		auto point = Point.p;
+		minX = FMath::Min(minX, point.X);
+		minY = FMath::Min(minY, point.Y);
+		maxX = FMath::Max(maxX, point.X);
+		maxY = FMath::Max(maxY, point.Y);
+	}
+	// UE_LOG(LogTemp, Log, TEXT("Projected %f %f"), width, height);
+	TZ = 5;
+	clampedMinX = FMath::Clamp(minX - TZ, 0.f, 1440.f);
+	clampedMinY = FMath::Clamp(minY - TZ, 0.f, 1080.f);
+	clampedMaxX = FMath::Clamp(maxX + TZ, 0.f, 1440.f);
+	clampedMaxY = FMath::Clamp(maxY + TZ, 0.f, 1080.f);
+
+	Areas.Add({ FVector2D(clampedMinX, clampedMinY), FVector2D(clampedMaxX, clampedMaxY), TEXT("TargetWind") });
+
+
 	return 1;
 }
 
