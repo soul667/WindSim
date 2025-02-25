@@ -864,7 +864,7 @@ void UWindContorl::GameInit()
 		GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, TEXT("Play Get Ok"));
 		PlayerController->EnableInput(PlayerController);
 	}
-	//TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
+	TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
 
 }
 void UWindContorl::LoadMaterial()
