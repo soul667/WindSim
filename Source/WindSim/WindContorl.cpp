@@ -243,16 +243,62 @@ void UWindContorl::ChangeMode()
 				if (Fans[WindState.NowHit].TargetLight)
 					Fans[WindState.NowHit].TargetLight->SetActorHiddenInGame(true);
 
-			// 这里有可能显示很多  就会出现点亮很多次的BUG
-			for (auto& j : Fans[WindState.NowHit].ScoreLights_) {
-					j->SetMaterial(0, Material[0]);
+			//// 这里有可能显示很多  就会出现点亮很多次的BUG
+			//for (auto& j : Fans[WindState.NowHit].ScoreLights_) {
+			//		j->SetMaterial(0, Material[0]);
+			//	}
+
+			//if (Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1] && !Fans[WindState.NowHit].AlreadyHit)
+			//{
+			//	Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1]->SetMaterial(0, TargetMaterial);
+			//	Fans[WindState.NowHit].AlreadyHit = 1;
+			//}
+				// 先重置所有环的材质
+				for (auto& j : Fans[WindState.NowHit].ScoreLights_) {
+					if (j) j->SetMaterial(0, Material[0]);
 				}
 
-			if (Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1] && !Fans[WindState.NowHit].AlreadyHit)
-			{
-				Fans[WindState.NowHit].ScoreLights_[Fans[WindState.NowHit].Score - 1]->SetMaterial(0, TargetMaterial);
-				Fans[WindState.NowHit].AlreadyHit = 1;
-			}
+				// 如果未击打过该扇叶
+				if (!Fans[WindState.NowHit].AlreadyHit)
+				{
+					int32 Score = Fans[WindState.NowHit].Score;
+
+					// 根据大小能量机关模式和分数决定亮环模式
+					if (WindState.SpinMode == SPIN_MODE::BIG)
+					{
+						// 小能量机关模式
+						if (Score == 10)
+						{
+							// 10环：1、3、5、7、9、10环亮起
+							int32 RingsToLight[] = { 0, 2, 4, 6, 8, 9 }; // 对应索引 0-9 = 环数 1-10
+							for (int32 RingIndex : RingsToLight)
+							{
+								if (RingIndex < Fans[WindState.NowHit].ScoreLights_.Num() &&
+									Fans[WindState.NowHit].ScoreLights_[RingIndex])
+								{
+									Fans[WindState.NowHit].ScoreLights_[RingIndex]->SetMaterial(0, TargetMaterial);
+								}
+							}
+						}
+						else if (Score >= 1 && Score <= 9)
+						{
+							// 1-9环：对应环数亮起
+							if (Fans[WindState.NowHit].ScoreLights_[Score - 1])
+							{
+								Fans[WindState.NowHit].ScoreLights_[Score - 1]->SetMaterial(0, TargetMaterial);
+							}
+						}
+					}
+					else if (WindState.SpinMode == SPIN_MODE::SMALL)
+					{
+						if (Fans[WindState.NowHit].ScoreLights_[Score - 1])
+						{
+							Fans[WindState.NowHit].ScoreLights_[Score - 1]->SetMaterial(0, TargetMaterial);
+						}
+					}
+
+					Fans[WindState.NowHit].AlreadyHit = 1;
+				}
 
 			// 其他地方的显示
 			if (Fans[WindState.NowHit].ElseLight_)
