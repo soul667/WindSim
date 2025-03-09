@@ -403,10 +403,10 @@ void UWindContorl::Settings()
 		if (TimeNow - KeyState.LastRandomHitTime > 1.8  && WindState.LastSetWinId!= WindState.NowHit)
 		{
 			// 随机生成 1 到 10 之间的值
-			//Score_ = FMath::RandRange(1, 10);
-			Score_ = GetWeightedRandomScore();
-			SetScoreWeight(10, 100);
+			Score_ = FMath::RandRange(1, 10);
 			//Score_ = 3;
+
+			// 更新随机赋值的时间
 			KeyState.LastRandomHitTime = TimeNow;
 			WindState.LastSetWinId = WindState.NowHit;
 			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("Now Hit : (%d)  RandomHit Score: (%d) WindState.LastSetWinId  (%d,%d)"),WindState.NowHit, Score_, WindState.LastSetWinId, WindState.NowHit));
@@ -794,7 +794,7 @@ void UWindContorl::GameInit()
 		PlayerController->EnableInput(PlayerController);
 	}
 	TextureRenderTargetResource = SceneCapture->TextureTarget->GameThread_GetRenderTargetResource();
-	InitializeScoreWeights(); // 添加这一行
+
 }
 void UWindContorl::LoadMaterial()
 {
@@ -1237,61 +1237,3 @@ bool UWindContorl::ProjectWorldTo2DSceneCapture(USceneCaptureComponent2D* SceneC
 }
 
 //  设置摄像机位置函数
-
-// 初始化权重函数实现（加到WindContorl.cpp中的适当位置）
-void UWindContorl::InitializeScoreWeights()
-{
-	// 确保数组有10个元素(对应1-10环)
-	ScoreWeights.SetNumZeroed(10);
-
-	// 默认设置均匀权重
-	for (int32 i = 0; i < 10; i++)
-	{
-		ScoreWeights[i] = 1.0f;
-	}
-}
-
-// 设置特定分值的权重
-void UWindContorl::SetScoreWeight(int32 Score, float Weight)
-{
-	if (Score >= 1 && Score <= 10 && Weight >= 0.0f)
-	{
-		// 数组索引比分值小1
-		ScoreWeights[Score - 1] = Weight;
-	}
-}
-
-// 根据权重获取随机分数
-int32 UWindContorl::GetWeightedRandomScore()
-{
-	// 如果权重数组为空，初始化它
-	if (ScoreWeights.Num() == 0)
-	{
-		InitializeScoreWeights();
-	}
-
-	// 计算总权重
-	float TotalWeight = 0.0f;
-	for (float Weight : ScoreWeights)
-	{
-		TotalWeight += Weight;
-	}
-
-	// 生成0到总权重之间的随机值
-	float RandomValue = FMath::RandRange(0.0f, TotalWeight);
-
-	// 根据权重选择分数
-	float WeightSum = 0.0f;
-	for (int32 i = 0; i < ScoreWeights.Num(); i++)
-	{
-		WeightSum += ScoreWeights[i];
-		if (RandomValue <= WeightSum)
-		{
-			// 返回索引+1的值(因为分数从1开始)
-			return i + 1;
-		}
-	}
-
-	// 以防万一，返回最高分
-	return 10;
-}

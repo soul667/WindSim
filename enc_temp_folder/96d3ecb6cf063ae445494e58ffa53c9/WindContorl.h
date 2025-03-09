@@ -217,23 +217,6 @@ protected:
 	FRotator InitRotation;
 	bool RandomHit = 1; // 随机按下
 	FVector2D FanCenterUse2D;
-
-
-	// 分数权重数组(索引0对应1环，索引9对应10环)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wind Settings")
-	TArray<float> ScoreWeights;
-
-	// 初始化权重的函数
-	UFUNCTION(BlueprintCallable, Category = "Wind Settings")
-	void InitializeScoreWeights();
-
-	// 设置特定分值的权重
-	UFUNCTION(BlueprintCallable, Category = "Wind Settings")
-	void SetScoreWeight(int32 Score, float Weight);
-
-	// 根据权重获取随机分数
-	UFUNCTION(BlueprintCallable, Category = "Wind Settings")
-	int32 GetWeightedRandomScore();
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
